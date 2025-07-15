@@ -1,6 +1,5 @@
-dash
+streamlit
 pandas
 numpy
 requests
 plotly
-gunicorn
