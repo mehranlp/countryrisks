@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 import requests
 import plotly.express as px
-import dash
-from dash import dcc, html
+import streamlit as st
 
 # ------------------------------
 # Step 1: Fetch World Bank Data
@@ -25,7 +24,7 @@ def fetch_indicator(indicator_code):
     json_response = response.json()
 
     if len(json_response) < 2:
-        print(f"Warning: No data returned for indicator {indicator_code}")
+        st.warning(f"No data returned for indicator {indicator_code}")
         return {}
 
     data = json_response[1]
@@ -100,8 +99,11 @@ def classify_risk(score):
 df['Risk_Level'] = df['Risk_Score'].apply(classify_risk)
 
 # ------------------------------
-# Step 5: Plotly Dash App
+# Step 5: Streamlit App
 # ------------------------------
+
+st.set_page_config(layout="wide")
+st.title('Global Country Risk Map')
 
 color_map = {
     'Very_Low': 'darkgreen',
@@ -111,25 +113,20 @@ color_map = {
     'Very_High': 'red'
 }
 
-app = dash.Dash(__name__)
+fig = px.choropleth(
+    data_frame=df,
+    locations='Country',
+    locationmode='country names',
+    color='Risk_Level',
+    hover_name='Country',
+    hover_data=['GDP_Growth', 'Inflation_Rate', 'Unemployment_Rate',
+                'FX_Reserves', 'Gov_Budget_Balance',
+                'Manufacturing_PMI', 'Services_PMI', 'Risk_Score'],
+    color_discrete_map=color_map,
+    title='Country Risk Levels (Based on Weighted Macro Indicators)'
+)
 
-app.layout = html.Div([
-    html.H1('Global Country Risk Map'),
-    dcc.Graph(
-        figure=px.choropleth(
-            data_frame=df,
-            locations='Country',
-            locationmode='country names',
-            color='Risk_Level',
-            hover_name='Country',
-            hover_data=['GDP_Growth', 'Inflation_Rate', 'Unemployment_Rate',
-                        'FX_Reserves', 'Gov_Budget_Balance',
-                        'Manufacturing_PMI', 'Services_PMI', 'Risk_Score'],
-            color_discrete_map=color_map,
-            title='Country Risk Levels (Based on Weighted Macro Indicators)'
-        ).update_geos(visible=False, showcountries=True).update_layout(height=800, width=1400)
-    )
-])
+fig.update_geos(visible=False, showcountries=True)
+fig.update_layout(height=800, width=1400)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+st.plotly_chart(fig, use_container_width=True)
