@@ -22,7 +22,13 @@ indicators = {
 def fetch_indicator(indicator_code):
     url = f"http://api.worldbank.org/v2/country/all/indicator/{indicator_code}?format=json&date=2022&per_page=500"
     response = requests.get(url)
-    data = response.json()[1]
+    json_response = response.json()
+
+    if len(json_response) < 2:
+        print(f"Warning: No data returned for indicator {indicator_code}")
+        return {}
+
+    data = json_response[1]
     return {entry['country']['value']: entry['value'] for entry in data if entry['value'] is not None}
 
 # Build dataframe
@@ -72,7 +78,6 @@ def compute_risk(row):
     score += -0.2 if row['Services_PMI'] > 50 else 0.3
     
     return score
-
 
 df['Risk_Score'] = df.apply(compute_risk, axis=1)
 
